@@ -24,17 +24,5 @@ module.exports = {
   UNVERIFY_EMOJI: "❌",
 
   // Anti-alt
-  MIN_ACCOUNT_AGE_DAYS: 7,
-
-  // Promotion system (for later)
-  COMMAND_ROLE_IDS: [
-    "1483324856266264626"
-  ],
-
-  // Rank hierarchy (ORDER MATTERS: lowest → highest)
-  RANK_ROLES: [
-    "ROLE_ID_LOWEST",
-    "ROLE_ID_MID",
-    "ROLE_ID_HIGH"
-  ]
+  MIN_ACCOUNT_AGE_DAYS: 7
 };
