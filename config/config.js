@@ -24,5 +24,8 @@ module.exports = {
   UNVERIFY_EMOJI: "❌",
 
   // Anti-alt
-  MIN_ACCOUNT_AGE_DAYS: 7
+  MIN_ACCOUNT_AGE_DAYS: 7,
+
+  // ADD THIS
+  GUILD_ID: "1410399567220052112"
 };
