@@ -42,6 +42,33 @@ module.exports = (client) => {
     if (!guild) return console.log('Guild not found');
 
     try {
+      const guild = client.guilds.cache.get(config.GUILD_ID);
+      if (!guild) return console.log('Guild not found');
+
+      const commands = [
+        new SlashCommandBuilder()
+          .setName('blacklist')
+          .setDescription('Manage blacklist')
+          .addSubcommand(s =>
+            s.setName('add')
+              .setDescription('Add user')
+              .addStringOption(o =>
+                o.setName('userid').setDescription('User ID').setRequired(true))
+              .addStringOption(o =>
+                o.setName('reason').setDescription('Reason').setRequired(true))
+          )
+          .addSubcommand(s =>
+            s.setName('remove')
+              .setDescription('Remove user')
+              .addStringOption(o =>
+                o.setName('userid').setDescription('User ID').setRequired(true))
+          )
+          .addSubcommand(s =>
+            s.setName('list')
+              .setDescription('List users')
+          )
+      ];
+
       await guild.commands.set(commands);
       console.log('Slash commands registered successfully');
     } catch (err) {
@@ -74,6 +101,8 @@ module.exports = (client) => {
               .setDescription('No permission.')
           ]
         });
+
+        return interaction.editReply(`Blacklisted ${user.tag}`);
       }
 
       const sub = interaction.options.getSubcommand();

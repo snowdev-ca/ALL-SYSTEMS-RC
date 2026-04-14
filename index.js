@@ -1,6 +1,7 @@
 const mongoose = require("mongoose");
 const { Client, GatewayIntentBits } = require("discord.js");
 
+// import module
 const blacklist = require("./systems/blacklist");
 
 const client = new Client({
@@ -13,13 +14,12 @@ const client = new Client({
 
 async function startBot() {
   try {
-    // connect DB first
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected");
 
-    // DO NOT query DB here
+    // ✅ RUN MODULE (THIS IS WHAT YOU WERE MISSING)
+    blacklist(client);
 
-    // login discord after DB ready
     await client.login(process.env.TOKEN);
 
   } catch (err) {
