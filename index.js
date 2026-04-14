@@ -1,8 +1,8 @@
 const { Client, GatewayIntentBits, Partials } = require('discord.js');
 
-const verificationSystem = require('./verification');
-const promotionSystem = require('./promotions');
-const blacklistSystem = require('./blacklist');
+const verificationSystem = require('systems/verification');
+const promotionSystem = require('systems/promotions');
+const blacklistSystem = require('systems/blacklist');
 
 const client = new Client({
   intents: [
