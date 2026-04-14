@@ -235,7 +235,6 @@ module.exports = (client) => {
       } else {
         return interaction.reply({
           content: 'An error occurred.',
-          ephemeral: true
         });
       }
     }
