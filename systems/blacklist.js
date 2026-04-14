@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const Blacklist = require('../utils/blacklistSchema');
 const config = require('../config/config');
 
@@ -8,35 +8,57 @@ module.exports = (client) => {
   // REGISTER COMMANDS
   // =========================
   client.once('ready', async () => {
+
     const commands = [
       new SlashCommandBuilder()
         .setName('blacklist')
         .setDescription('Manage the blacklist')
-        .addSubcommand(sub => sub
-          .setName('add')
-          .setDescription('Add a user to the blacklist')
-          .addStringOption(opt => opt
-            .setName('userid')
-            .setDescription('The user ID to blacklist')
-            .setRequired(true))
-          .addStringOption(opt => opt
-            .setName('reason')
-            .setDescription('Reason for blacklisting')
-            .setRequired(true)))
-        .addSubcommand(sub => sub
-          .setName('remove')
-          .setDescription('Remove a user from the blacklist')
-          .addStringOption(opt => opt
-            .setName('userid')
-            .setDescription('The user ID to remove')
-            .setRequired(true)))
-        .addSubcommand(sub => sub
-          .setName('list')
-          .setDescription('View all blacklisted users'))
+        .addSubcommand(sub =>
+          sub.setName('add')
+            .setDescription('Add a user to the blacklist')
+            .addStringOption(opt =>
+              opt.setName('userid')
+                .setDescription('The user ID to blacklist')
+                .setRequired(true))
+            .addStringOption(opt =>
+              opt.setName('reason')
+                .setDescription('Reason for blacklisting')
+                .setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub.setName('remove')
+            .setDescription('Remove a user from the blacklist')
+            .addStringOption(opt =>
+              opt.setName('userid')
+                .setDescription('The user ID to remove')
+                .setRequired(true))
+        )
+        .addSubcommand(sub =>
+          sub.setName('list')
+            .setDescription('View all blacklisted users')
+        )
     ];
 
-    await client.application.commands.set(commands);
-    console.log('Slash commands registered');
+    const guild = client.guilds.cache.get(config.GUILD_ID);
+
+    if (!guild) {
+      console.log('Guild not found - check GUILD_ID');
+      return;
+    }
+
+    try {
+      await guild.commands.set(commands);
+
+      console.log(`Logged in as: ${client.user.tag}`);
+      console.log('Slash commands registered successfully');
+      console.log(`Commands active in: ${guild.name}`);
+
+      const fetched = await guild.commands.fetch();
+      console.log(`Verified commands: ${fetched.size}`);
+
+    } catch (err) {
+      console.log('Failed to register commands:', err);
+    }
   });
 
   // =========================
@@ -46,15 +68,18 @@ module.exports = (client) => {
     if (!interaction.isChatInputCommand()) return;
     if (interaction.commandName !== 'blacklist') return;
 
-    // HR check
     const member = interaction.member;
-    const isHR = config.HR_ROLE_IDS.some(roleId => member.roles.cache.has(roleId));
+
+    const isHR = config.HR_ROLE_IDS.some(roleId =>
+      member.roles.cache.has(roleId)
+    );
+
     if (!isHR) {
       return interaction.reply({
         embeds: [
           new EmbedBuilder()
             .setColor(0xFF0000)
-            .setDescription('❌ You do not have permission to use this command.')
+            .setDescription('No permission.')
         ],
         ephemeral: true
       });
@@ -62,40 +87,35 @@ module.exports = (client) => {
 
     const sub = interaction.options.getSubcommand();
 
-    // =========================
-    // /blacklist add
-    // =========================
+    // ADD
     if (sub === 'add') {
       const userId = interaction.options.getString('userid');
       const reason = interaction.options.getString('reason');
 
-      // Check if already blacklisted
       const existing = await Blacklist.findOne({ userId });
       if (existing) {
         return interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setColor(0xFF0000)
-              .setDescription(`❌ <@${userId}> is already blacklisted.`)
+              .setDescription('User already blacklisted.')
           ],
           ephemeral: true
         });
       }
 
-      // Fetch username
       const targetUser = await client.users.fetch(userId).catch(() => null);
       if (!targetUser) {
         return interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setColor(0xFF0000)
-              .setDescription('❌ Could not find that user. Double check the ID.')
+              .setDescription('Invalid user ID.')
           ],
           ephemeral: true
         });
       }
 
-      // Save to DB
       await Blacklist.create({
         userId,
         username: targetUser.tag,
@@ -103,39 +123,37 @@ module.exports = (client) => {
         blacklistedBy: interaction.user.tag
       });
 
-      // Kick if in server
-      const guild = interaction.guild;
-      const member = await guild.members.fetch(userId).catch(() => null);
-      if (member) await member.kick(`Blacklisted: ${reason}`);
+      const targetMember = await interaction.guild.members.fetch(userId).catch(() => null);
+      if (targetMember && targetMember.kickable) {
+        await targetMember.kick(`Blacklisted: ${reason}`);
+      }
 
       return interaction.reply({
         embeds: [
           new EmbedBuilder()
             .setColor(0xFF0000)
-            .setTitle('🚫 User Blacklisted')
+            .setTitle('User Blacklisted')
             .addFields(
-              { name: 'User', value: `${targetUser.tag} (<@${userId}>)`, inline: true },
+              { name: 'User', value: targetUser.tag, inline: true },
               { name: 'Reason', value: reason, inline: true },
-              { name: 'Blacklisted By', value: interaction.user.tag, inline: true }
+              { name: 'By', value: interaction.user.tag, inline: true }
             )
-            .setTimestamp()
         ]
       });
     }
 
-    // =========================
-    // /blacklist remove
-    // =========================
+    // REMOVE
     if (sub === 'remove') {
       const userId = interaction.options.getString('userid');
 
       const entry = await Blacklist.findOneAndDelete({ userId });
+
       if (!entry) {
         return interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setColor(0xFF0000)
-              .setDescription('❌ That user is not blacklisted.')
+              .setDescription('User not blacklisted.')
           ],
           ephemeral: true
         });
@@ -145,28 +163,25 @@ module.exports = (client) => {
         embeds: [
           new EmbedBuilder()
             .setColor(0x00FF00)
-            .setTitle('✅ User Removed from Blacklist')
+            .setTitle('Removed from blacklist')
             .addFields(
-              { name: 'User', value: `${entry.username} (<@${userId}>)`, inline: true },
-              { name: 'Removed By', value: interaction.user.tag, inline: true }
+              { name: 'User', value: entry.username, inline: true },
+              { name: 'By', value: interaction.user.tag, inline: true }
             )
-            .setTimestamp()
         ]
       });
     }
 
-    // =========================
-    // /blacklist list
-    // =========================
+    // LIST
     if (sub === 'list') {
       const entries = await Blacklist.find();
 
-      if (entries.length === 0) {
+      if (!entries.length) {
         return interaction.reply({
           embeds: [
             new EmbedBuilder()
               .setColor(0x00FF00)
-              .setDescription('✅ The blacklist is currently empty.')
+              .setDescription('Blacklist is empty.')
           ],
           ephemeral: true
         });
@@ -174,14 +189,13 @@ module.exports = (client) => {
 
       const embed = new EmbedBuilder()
         .setColor(0xFF0000)
-        .setTitle('🚫 Blacklist')
-        .setDescription(`${entries.length} user(s) blacklisted`)
-        .setTimestamp();
+        .setTitle('Blacklist')
+        .setDescription(`${entries.length} users`);
 
-      for (const entry of entries) {
+      for (const entry of entries.slice(0, 25)) {
         embed.addFields({
-          name: `${entry.username}`,
-          value: `**ID:** ${entry.userId}\n**Reason:** ${entry.reason}\n**By:** ${entry.blacklistedBy}\n**Date:** <t:${Math.floor(new Date(entry.blacklistedAt).getTime() / 1000)}:D>`,
+          name: entry.username,
+          value: `ID: ${entry.userId}\nReason: ${entry.reason}`,
           inline: true
         });
       }
@@ -198,30 +212,29 @@ module.exports = (client) => {
     if (!entry) return;
 
     const banDays = config.BLACKLIST_BAN_DAYS;
-    const unixExpiry = Math.floor((Date.now() + banDays * 24 * 60 * 60 * 1000) / 1000);
+    const expiry = Math.floor((Date.now() + banDays * 86400000) / 1000);
 
     await member.send(
-      `You have been banned from this server as you are blacklisted.\nReason: ${entry.reason}\nBan expires: <t:${unixExpiry}:F>`
-    ).catch(() => null); // Don't crash if DMs are closed
+      `You are blacklisted.\nReason: ${entry.reason}`
+    ).catch(() => null);
 
-    await member.ban({
-      reason: `Blacklisted: ${entry.reason}`,
-      deleteMessageSeconds: 0
-    });
+    if (member.bannable) {
+      await member.ban({ reason: entry.reason });
+    }
 
     const logChannel = member.guild.channels.cache.get(config.LOG_CHANNEL_ID);
+
     if (logChannel) {
-      await logChannel.send({
+      logChannel.send({
         embeds: [
           new EmbedBuilder()
             .setColor(0xFF0000)
-            .setTitle('🔨 Blacklisted User Banned on Rejoin')
+            .setTitle('Blacklisted User Banned on Rejoin')
             .addFields(
-              { name: 'User', value: `${member.user.tag} (<@${member.id}>)`, inline: true },
+              { name: 'User', value: member.user.tag, inline: true },
               { name: 'Reason', value: entry.reason, inline: true },
-              { name: 'Ban Expires', value: `<t:${unixExpiry}:F>`, inline: true }
+              { name: 'Expires', value: `<t:${expiry}:F>`, inline: true }
             )
-            .setTimestamp()
         ]
       });
     }
