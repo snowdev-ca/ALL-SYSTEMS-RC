@@ -17,7 +17,7 @@ async function startBot() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected");
 
-    // ✅ RUN MODULE (THIS IS WHAT YOU WERE MISSING)
+    // run module
     blacklist(client);
 
     await client.login(process.env.TOKEN);
