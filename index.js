@@ -1,6 +1,5 @@
 const mongoose = require("mongoose");
 const { Client, GatewayIntentBits, Partials } = require("discord.js");
-require('dotenv').config();
 
 const blacklist = require("./systems/blacklist");
 const verification = require("./systems/verification");
