@@ -1,15 +1,19 @@
 const mongoose = require("mongoose");
-const { Client, GatewayIntentBits } = require("discord.js");
+const { Client, GatewayIntentBits, Partials } = require("discord.js");
+require('dotenv').config();
 
-// import module
 const blacklist = require("./systems/blacklist");
+const verification = require("./systems/verification");
 
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildMembers,
     GatewayIntentBits.MessageContent
-  ]
+  ],
+  partials: [Partials.Message, Partials.Channel, Partials.Reaction]
 });
 
 async function startBot() {
@@ -17,8 +21,8 @@ async function startBot() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected");
 
-    // run module
     blacklist(client);
+    verification(client);
 
     await client.login(process.env.TOKEN);
 
@@ -27,7 +31,7 @@ async function startBot() {
   }
 }
 
-client.once("ready", () => {
+client.once("clientReady", () => {
   console.log(`Logged in as ${client.user.tag}`);
 });
 
