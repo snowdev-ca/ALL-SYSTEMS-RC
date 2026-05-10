@@ -4,9 +4,7 @@ const config = require('../config/config');
 
 module.exports = (client) => {
 
-  // =========================
   // REGISTER COMMANDS
-  // =========================
   client.once('ready', async () => {
     const commands = [
       new SlashCommandBuilder()
@@ -76,9 +74,8 @@ module.exports = (client) => {
     }
   });
 
-  // =========================
+
   // COMMAND HANDLER (FIXED)
-  // =========================
   client.on('interactionCreate', async (interaction) => {
     try {
       if (!interaction.isChatInputCommand()) return;
@@ -107,9 +104,7 @@ module.exports = (client) => {
 
       const sub = interaction.options.getSubcommand();
 
-      // =========================
       // ADD
-      // =========================
       if (sub === 'add') {
         const userId = interaction.options.getString('userid');
         const reason = interaction.options.getString('reason');
@@ -161,10 +156,8 @@ module.exports = (client) => {
           ]
         });
       }
-
-      // =========================
+      
       // REMOVE
-      // =========================
       if (sub === 'remove') {
         const userId = interaction.options.getString('userid');
 
@@ -193,9 +186,7 @@ module.exports = (client) => {
         });
       }
 
-      // =========================
       // LIST
-      // =========================
       if (sub === 'list') {
         const entries = await Blacklist.find();
 
@@ -240,9 +231,7 @@ module.exports = (client) => {
     }
   });
 
-  // =========================
   // REJOIN CHECK (SAFE)
-  // =========================
   client.on('guildMemberAdd', async (member) => {
     try {
       const entry = await Blacklist.findOne({ userId: member.id });
